@@ -8,11 +8,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
  * GRID
  * Created by zurek on 29/12/2016.
  */
-public class Grid {
+public class Cell {
     private Sprite skin;
     private float x,y;
 
-    public Grid(Texture texture,float x,float y){
+    public Cell(Texture texture, float x, float y){
         this.x=x;
         this.y=y;
 

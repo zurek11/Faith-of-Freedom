@@ -9,45 +9,52 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Vector3;
-import sk.zurek.FOF.Objects.Button;
-import sk.zurek.FOF.Objects.Grid;
+import com.badlogic.gdx.scenes.scene2d.Group;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import sk.zurek.FOF.Objects.Cell;
 
 public class MapEditor implements Screen {
+    //--------CONSTANTS-------------------------------------------------------------------------------------------------
+
     private static final int SPEED=100;
     private static final int CAM_WIDTH=800;
     private static final int CAM_HEIGHT=600;
     private static final int GRID_WIDTH=2400;
     private static final int GRID_HEIGHT=2400;
     private static final int CELL_SIZE=60;
+    private static final int TEXTURE_NUMBER=5;
+    private static final int PANEL_SIZE=100;
 
-    private Texture inactive_txt;
-    private Texture active1_txt;
-    private Texture active2_txt;
-    private Texture active3_txt;
-    private Button inactive_but,active1_but,active2_but,active3_but;
-    private int choice;
 
+    //---------LIBGDX---------------------------------------------------------------------------------------------------
+
+    private Stage stage;
+    private Skin skin;
+    private Table scrollTable;
+    private TextButton[] buttons;
+    private Texture[] textures;
     private SpriteBatch batch;
     private OrthographicCamera camera;
-    private BitmapFont font = new BitmapFont();
+    private BitmapFont test_font;
     private Vector3 viewPos;
-    private Grid[][] cells;
+
+    //---------JAVA-----------------------------------------------------------------------------------------------------
+
+    private Cell[][] cells;
     private float x=GRID_WIDTH/2,y=GRID_HEIGHT/2;
+    private int choice;
+
+    //------------------------------------------------------------------------------------------------------------------
 
     public MapEditor(){
-        initButtons();
-        batch = new SpriteBatch();
-        camera=new OrthographicCamera(CAM_WIDTH,CAM_HEIGHT);
-        cells = new Grid[GRID_WIDTH/CELL_SIZE][GRID_HEIGHT/CELL_SIZE];
-        viewPos = new Vector3();
-
-        for(int i=0;i<GRID_WIDTH/CELL_SIZE;++i){
-            for(int j=0;j<GRID_HEIGHT/CELL_SIZE;++j){
-                cells[i][j]=new Grid(inactive_txt,i*CELL_SIZE,j*CELL_SIZE);
-            }
-        }
+        initPanel();
+        initOthers();
+        createMap();
     }
-
 
     @Override
     public void show() {
@@ -61,7 +68,7 @@ public class MapEditor implements Screen {
         camera.unproject(viewPos);
 
         batch.begin();
-        font.draw(batch,(int)viewPos.x+"/"+(int)viewPos.y,x-CAM_WIDTH/2, y-(CAM_HEIGHT/2)+12);
+        test_font.draw(batch,(int)viewPos.x+"/"+(int)viewPos.y,x-CAM_WIDTH/2, y-(CAM_HEIGHT/2)+10);
         for(int i=0;i<GRID_WIDTH/CELL_SIZE;++i){
             for(int j=0;j<GRID_HEIGHT/CELL_SIZE;++j){
                 cells[i][j].render(batch);
@@ -76,20 +83,13 @@ public class MapEditor implements Screen {
         if(Gdx.input.isKeyPressed(Input.Keys.DOWN) || Gdx.input.isKeyPressed(Input.Keys.S))
             y-=SPEED*Gdx.graphics.getDeltaTime();
         if(Gdx.input.isButtonPressed(Input.Buttons.LEFT)){
-            if(inactive_but.getID(viewPos.x,viewPos.y)>=0)choice=0;
-            else if(active1_but.getID(viewPos.x,viewPos.y)>=0)choice=1;
-            else if(active2_but.getID(viewPos.x,viewPos.y)>=0)choice=2;
-            else if(active3_but.getID(viewPos.x,viewPos.y)>=0)choice=3;
-
-            else if((viewPos.x<GRID_WIDTH) && (viewPos.x>0)
-                    && (viewPos.y<GRID_HEIGHT) && (viewPos.y>0)){
-                cells[(int)(viewPos.x/60)][(int)(viewPos.y/60)].update(setTexture(choice));
+            if((viewPos.x<GRID_WIDTH) && (viewPos.x>0) && (viewPos.y<GRID_HEIGHT) && (viewPos.y>0)){
+                    cells[(int)(viewPos.x/60)][(int)(viewPos.y/60)].update(textures[choice]);
             }
         }
-        inactive_but.draw(batch,x-CAM_WIDTH/2,y+(CAM_HEIGHT/2)-60);
-        active1_but.draw(batch,x-(CAM_WIDTH/2)+60,y+(CAM_HEIGHT/2)-60);
-        active2_but.draw(batch,x-CAM_WIDTH/2,y+(CAM_HEIGHT/2)-120);
-        active3_but.draw(batch,x-(CAM_WIDTH/2)+60,y+(CAM_HEIGHT/2)-120);
+
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
 
         camera.position.set(x,y,0);
         camera.update();
@@ -122,25 +122,66 @@ public class MapEditor implements Screen {
         batch.dispose();
     }
 
-    private void initButtons(){
-        Texture inactive_icon_txt = new Texture("grid_inactive_icon.png");
-        inactive_txt=new Texture("grid_inactive.png");
-        active1_txt = new Texture("grid_active01.png");
-        active2_txt = new Texture("grid_active02.png");
-        active3_txt = new Texture("grid_active03.png");
-        inactive_but=new Button(inactive_icon_txt,0);
-        active1_but=new Button(active1_txt,1);
-        active2_but=new Button(active2_txt,2);
-        active3_but=new Button(active3_txt,3);
+    private void createMap(){
+        cells = new Cell[GRID_WIDTH/CELL_SIZE][GRID_HEIGHT/CELL_SIZE];
+
+        for(int i=0;i<GRID_WIDTH/CELL_SIZE;++i){
+            for(int j=0;j<GRID_HEIGHT/CELL_SIZE;++j){
+                cells[i][j]=new Cell(textures[0],i*CELL_SIZE,j*CELL_SIZE);
+            }
+        }
     }
 
-    private Texture setTexture(int id){
-        switch (id){
-            case 0:return inactive_txt;
-            case 1:return active1_txt;
-            case 2:return active2_txt;
-            case 3:return active3_txt;
-        }
-        return null;
+    private void initTextures(){
+        textures=new Texture[TEXTURE_NUMBER];
+        buttons = new TextButton[TEXTURE_NUMBER];
+        scrollTable = new Table();
+        scrollTable.setBounds(0,0,PANEL_SIZE,PANEL_SIZE);
+
+        addTexture("textures/grid_inactive.png","Delete",0);
+        addTexture("textures/grid_active01.png","Red",1);
+        addTexture("textures/grid_active02.png","Blue",2);
+        addTexture("textures/grid_active03.png","Green",3);
+        addTexture("textures/grid_active04.png","Yellow",4);
+    }
+
+    private void initPanel(){
+        stage=new Stage(new ScreenViewport());
+        skin = new Skin(Gdx.files.internal("uiskin.json"));
+
+        Group background = new Group();
+        background.setBounds(0, CAM_HEIGHT-PANEL_SIZE, PANEL_SIZE, PANEL_SIZE);
+        initTextures();
+
+        ScrollPane scrollPane = new ScrollPane(scrollTable);
+        scrollPane.setBounds(0, 0, PANEL_SIZE, PANEL_SIZE);
+        scrollPane.setPosition(0,CAM_HEIGHT-PANEL_SIZE);
+        scrollPane.setTransform(true);
+
+        stage.addActor(background);
+        stage.addActor(scrollPane);
+        background.addActor(new Image(new Texture("textures/panel_background.png")));
+        Gdx.input.setInputProcessor(stage);
+    }
+
+    private void initOthers(){
+        test_font=new BitmapFont(Gdx.files.internal("fonts/test_fnt.fnt"));
+        test_font.getData().setScale(0.5f);
+        batch = new SpriteBatch();
+        camera=new OrthographicCamera(CAM_WIDTH,CAM_HEIGHT);
+        viewPos = new Vector3();
+    }
+
+    //add button with texture to panel
+    private void addTexture(String textureName, String buttonName, final int number){
+        textures[number] = new Texture(textureName);
+        buttons[number]=new TextButton(buttonName, skin);
+        scrollTable.add(buttons[number]).width(PANEL_SIZE);
+        scrollTable.row();
+
+        buttons[number].addListener( new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {choice=number;}
+        });
     }
 }
